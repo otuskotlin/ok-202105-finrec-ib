@@ -1,4 +1,4 @@
-rootProject.name = "marketplace"
+rootProject.name = "finrec"
 
 pluginManagement {
     plugins {
@@ -16,3 +16,5 @@ include("ok-m1l6-flows-and-channels")
 include("ok-m1l7-kmp")
 include("ok-m2l2-testing")
 include("ok-m2l4-practice")
+include("common")
+include("common-finrec-backend")
