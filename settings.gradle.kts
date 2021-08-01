@@ -9,4 +9,4 @@ pluginManagement {
 }
 
 include("common")
-include("commonbackend")
+include("m2l2-testing")
