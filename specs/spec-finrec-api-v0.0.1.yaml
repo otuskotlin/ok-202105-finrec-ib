@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: Отслеживание портфелей инвестиций
+  description: 'Мы можем составить портфель из различных активов и следить за его динамикой'
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.0.1
+servers:
+  - url: http://localhost
+tags:
+  - name: portfolio
+    description: Портфолио
+  - name: symbol
+    description: Симболы для активов
+  - name: asset
+    description: Текущие состояние активов
+  - name: trade
+    description: История сделок по активам
+paths:
+  /portfolio/init:
+    post:
+      tags:
+        - portfolio
+      summary: Получить статус при инициализации
+      operationId: initPortfolio
+      requestBody:
+        description: Объект запроса для инициализации при старте приложения
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitAdRequest'
+        required: true
+      responses:
+        200:
+          description: all responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitAdResponse'
+
+  /portfolio/create:
+    post:
+      tags:
+        - portfolio
+      summary: Создание портфолио
+      operationId: createPortfolio
+      requestBody:
+        description: Portfolio object that needs to be added to the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePortfolioRequest'
+        required: true
+      responses:
+        200:
+          description: All responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatePortfolioResponse'
+
+  /portfolio/read:
+    post:
+      tags:
+        - portfolio
+      summary: read portfolio
+      operationId: readPortfolio
+      requestBody:
+        description: Portfolio id that needs to get from store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadPortfolioRequest'
+        required: true
+      responses:
+        200:
+          description: All responses
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadPortfolioResponse'
+components:
+  schemas:
+    BaseMessage:
+      type: object
+      properties:
+        messageType:
+          type: string
+      discriminator:
+        propertyName: messageType
+
+    BaseRequest:
+      type: object
+      properties:
+        requestId:
+          type: string
+        debug:
+          $ref: '#/components/schemas/BaseDebugRequest'
+
+    BaseResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          enum:
+            - success
+            - error
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiError'
+
+    ApiError:
+      type: object
+      properties:
+        message:
+          type: string
+        filed:
+          type: string
+
+    BaseDebugRequest:
+      type: object
+      description: Структура с описанием отладочных параметров запроса
+      properties:
+        mode:
+          type: string
+          enum:
+            - prod
+            - test
+            - stub
+        stub:
+          type: string
+
+    CreatablePortfolio:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        userId:
+          type: integer
+          description: user id
+
+    UpdatablePortfolio:
+      allOf:
+        - $ref: '#/components/schemas/CreatablePortfolio'
+        - type: object
+          properties:
+            id:
+              type: integer
+
+    ResponsePortfolio:
+      description: Структура, описывающая портфолио в ответе
+      allOf:
+        - $ref: '#/components/schemas/UpdatablePortfolio'
+        - type: object
+          properties:
+            permissions:
+              type: array
+              uniqueItems: true
+              items:
+                $ref: '#/components/schemas/PortfolioPermissions'
+
+    ResultPortfolio:
+      allOf:
+        - $ref: '#/components/schemas/UpdatablePortfolio'
+        - type: object
+          properties:
+            permissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PortfolioPermissions'
+            id:
+              type: integer
+
+    PortfolioPermissions:
+      type: string
+      enum:
+        - read
+        - update
+        - delete
+        - send
+
+    CreatePortfolioRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            createPortfolio:
+              $ref: '#/components/schemas/CreatablePortfolio'
+            debug:
+              type: object
+              properties:
+                stub:
+                  type: string
+                  enum:
+                    - success
+                    - nameEmpty
+                    - errorDb
+
+    CreatePortfolioResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            createdProtfolio:
+              $ref: '#/components/schemas/ResultPortfolio'
+
+
+    ReadPortfolioRequest:
+      description: Структура для получения портфолио
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            readPortoflioId:
+              type: integer
+            debug:
+              allOf:
+                - $ref: '#/components/schemas/BaseDebugRequest'
+                - type: object
+                  properties:
+                    stub:
+                      type: string
+                      enum:
+                        - success
+                        - emptyId
+                        - databaseError
+
+    ReadPortfolioResponse:
+      description: Структура для ответа на запрос с информацией об портфолио
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            readAd:
+              $ref: '#/components/schemas/ResponsePortfolio'
+
+    InitAdRequest:
+      description: Структура для запроса начального состояния при старте вэб-клиента
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseRequest'
+
+    InitAdResponse:
+      description: Структура для ответа с начальным состоянием при старте вэб-клиента
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
