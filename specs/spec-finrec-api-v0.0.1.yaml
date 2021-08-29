@@ -29,7 +29,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InitAdRequest'
+              $ref: '#/components/schemas/InitPortfolioRequest'
         required: true
       responses:
         200:
@@ -37,7 +37,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InitAdResponse'
+                $ref: '#/components/schemas/InitPortfolioResponse'
 
   /portfolio/create:
     post:
@@ -99,24 +99,29 @@ components:
           $ref: '#/components/schemas/BaseDebugRequest'
 
     BaseResponse:
-      type: object
-      properties:
-        result:
-          type: string
-          enum:
-            - success
-            - error
-        errors:
-          type: array
-          items:
-            $ref: '#/components/schemas/ApiError'
+      description: Базовый класс для всех ответов
+      allOf:
+        #        - $ref: '#/components/schemas/BaseMessage'
+        - type: object
+          properties:
+            requestId:
+              type: string
+            result:
+              type: string
+              enum:
+                - success
+                - error
+            errors:
+              type: array
+              items:
+                $ref: '#/components/schemas/RequestError'
 
-    ApiError:
+    RequestError:
       type: object
       properties:
         message:
           type: string
-        filed:
+        field:
           type: string
 
     BaseDebugRequest:
@@ -132,6 +137,14 @@ components:
         stub:
           type: string
 
+    PortfolioVisibility:
+      type: string
+      description: 'Тип видимости портфолио. Возможные значения: видит только владелец, только зарегистрированный в системе пользователь, видимо всем'
+      enum:
+        - ownerOnly
+        - registeredOnly
+        - public
+
     CreatablePortfolio:
       type: object
       properties:
@@ -139,9 +152,30 @@ components:
           type: string
         description:
           type: string
+        totalVolume:
+          type: string
+          readOnly: true
+          description: Общая стоимость всех активов в портфолио
+        #              todo: создать структуру для активов
+        assets:
+          type: array
+          items:
+            type: object
+            properties:
+              #              todo: создать структуру для тикера
+              ticker:
+                type: string
+                description: 'Тикер пример: USD; EUR; RUB'
+              volume:
+                type: string
+                description: объем
+
         userId:
           type: integer
           description: user id
+          format: int64
+        visibility:
+          $ref: '#/components/schemas/PortfolioVisibility'
 
     UpdatablePortfolio:
       allOf:
@@ -150,6 +184,7 @@ components:
           properties:
             id:
               type: integer
+              format: int64
 
     ResponsePortfolio:
       description: Структура, описывающая портфолио в ответе
@@ -163,17 +198,36 @@ components:
               items:
                 $ref: '#/components/schemas/PortfolioPermissions'
 
-    ResultPortfolio:
+    UpdatePortfolioResponse:
+      description: Структура для ответа на запрос с информацией об объявлении
       allOf:
-        - $ref: '#/components/schemas/UpdatablePortfolio'
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseResponse'
         - type: object
           properties:
-            permissions:
-              type: array
-              items:
-                $ref: '#/components/schemas/PortfolioPermissions'
-            id:
-              type: integer
+            updatedPortfolio:
+              $ref: '#/components/schemas/ResponsePortfolio'
+
+    UpdatePortfolioRequest:
+      description: Структура для запроса обновления существующего объявления
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            createPortfolio:
+              $ref: '#/components/schemas/UpdatablePortfolio'
+            debug:
+              allOf:
+                - $ref: '#/components/schemas/BaseDebugRequest'
+                - type: object
+                  properties:
+                    stub:
+                      type: string
+                      enum:
+                        - success
+                        - emptyTitle
+                        - databaseError
 
     PortfolioPermissions:
       type: string
@@ -207,9 +261,8 @@ components:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
           properties:
-            createdProtfolio:
-              $ref: '#/components/schemas/ResultPortfolio'
-
+            createdPortfolio:
+              $ref: '#/components/schemas/ResponsePortfolio'
 
     ReadPortfolioRequest:
       description: Структура для получения портфолио
@@ -218,8 +271,9 @@ components:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
           properties:
-            readPortoflioId:
+            readPortfolioId:
               type: integer
+              format: int64
             debug:
               allOf:
                 - $ref: '#/components/schemas/BaseDebugRequest'
@@ -239,18 +293,106 @@ components:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
           properties:
-            readAd:
+            readPortfolio:
               $ref: '#/components/schemas/ResponsePortfolio'
 
-    InitAdRequest:
+    InitPortfolioRequest:
       description: Структура для запроса начального состояния при старте вэб-клиента
       allOf:
         - $ref: '#/components/schemas/BaseMessage'
         - $ref: '#/components/schemas/BaseRequest'
 
-    InitAdResponse:
+    InitPortfolioResponse:
       description: Структура для ответа с начальным состоянием при старте вэб-клиента
       allOf:
         - $ref: '#/components/schemas/BaseMessage'
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
+
+    DeletePortfolioRequest:
+      description: Структура для запроса удаления портфолио
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            deletePortfolioId:
+              type: integer
+              format: int64
+            debug:
+              allOf:
+                - $ref: '#/components/schemas/BaseDebugRequest'
+                - type: object
+                  properties:
+                    stub:
+                      type: string
+                      enum:
+                        - success
+                        - emptyId
+                        - databaseError
+
+    BasePaginatedResponse:
+      type: object
+      description: Структура с описанием страницы в ответе
+      properties:
+        size:
+          type: integer
+          description: Размер запрашиваемой страницы
+          format: int32
+        lastId:
+          type: integer
+          format: int64
+          description: Идентификатор последнего объекта предыдущей страницы
+        position:
+          type: string
+          enum:
+            - first
+            - middle
+            - last
+
+    BasePaginatedRequest:
+      type: object
+      description: Структура с описанием запрашиваемой страницы в запросах списков
+      properties:
+        size:
+          type: integer
+          description: Размер запрашиваемой страницы
+          format: int32
+        lastId:
+          type: integer
+          format: int64
+          description: Идентификатор последнего объекта предыдущей страницы
+
+    DeletePortfolioResponse:
+      description: Структура для ответа на запрос об удалении портфолио
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            deletedPortfolio:
+              $ref: '#/components/schemas/ResponsePortfolio'
+
+    SearchPortfolioRequest:
+      description: Структура для запроса поиска объявлений
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          properties:
+            page:
+              $ref: '#/components/schemas/BasePaginatedRequest'
+
+    SearchPortfolioResponse:
+      description: Структура для ответа на запрос поиска объявлений
+      allOf:
+        - $ref: '#/components/schemas/BaseMessage'
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            page:
+              $ref: '#/components/schemas/BasePaginatedResponse'
+            foundPortfolios:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResponsePortfolio'

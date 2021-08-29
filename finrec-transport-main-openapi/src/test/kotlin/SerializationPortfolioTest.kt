@@ -6,13 +6,13 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
-class SerializationProductTest {
+class SerializationPortfolioTest {
     private val jsonSerializer = ObjectMapper()
-    val dto = CreatePortfolioRequest(
+    private val dto = CreatePortfolioRequest(
         requestId = "12345",
         createPortfolio = CreatablePortfolio(
-            name = "Bolt",
-            description = "Strong Bolt",
+            name = "US",
+            description = "American stocks",
             userId = 123
         )
     )
@@ -23,10 +23,10 @@ class SerializationProductTest {
         assertContains(serializedString, Regex("userId\":\\s*123"))
     }
 
-//    @Test
-//    fun productDeserializationTest() {
-//        val serializedString = jsonSerializer.writeValueAsString(dto)
-//        val deserializedDto = jsonSerializer.readValue(serializedString, BaseMessage::class.java)
-//        assertEquals(32.0, ((deserializedDto as CreateAdRequest).createAd?.product as AdProductBolt).lengh)
-//    }
+    @Test
+    fun productDeserializationTest() {
+        val serializedString = jsonSerializer.writeValueAsString(dto)
+        val deserializedDto = jsonSerializer.readValue(serializedString, BaseMessage::class.java)
+        assertEquals("American stocks", ((deserializedDto as CreatePortfolioRequest).createPortfolio?.description))
+    }
 }

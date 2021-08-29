@@ -15,3 +15,5 @@ pluginManagement {
 include("common")
 include("m2l2-testing")
 include("finrec-transport-main-openapi")
+include("be-common")
+include("finrec-be-transport-mapping-openapi")
